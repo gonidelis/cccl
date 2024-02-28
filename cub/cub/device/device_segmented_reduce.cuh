@@ -288,7 +288,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -461,7 +461,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -623,7 +623,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -982,7 +982,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
