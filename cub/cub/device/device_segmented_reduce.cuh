@@ -160,47 +160,11 @@ public:
   //!
   //! The code snippet below illustrates a custom min-reduction of a device vector of ``int`` data elements.
   //!
-  //! .. code-block:: c++
-  //!
-  //!    #include <cub/cub.cuh>
-  //!    // or equivalently <cub/device/device_radix_sort.cuh>
-  //!
-  //!    // CustomMin functor
-  //!    struct CustomMin
-  //!    {
-  //!        template <typename T>
-  //!        __device__ __forceinline__
-  //!        T operator()(const T &a, const T &b) const {
-  //!            return (b < a) ? b : a;
-  //!        }
-  //!    };
-  //!
-  //!    // Declare, allocate, and initialize device-accessible pointers
-  //!    // for input and output
-  //!    int          num_segments;   // e.g., 3
-  //!    int          *d_offsets;     // e.g., [0, 3, 3, 7]
-  //!    int          *d_in;          // e.g., [8, 6, 7, 5, 3, 0, 9]
-  //!    int          *d_out;         // e.g., [-, -, -]
-  //!    CustomMin    min_op;
-  //!    int          initial_value;           // e.g., INT_MAX
-  //!    ...
-  //!
-  //!    // Determine temporary device storage requirements
-  //!    void     *d_temp_storage = NULL;
-  //!    size_t   temp_storage_bytes = 0;
-  //!    cub::DeviceSegmentedReduce::Reduce(
-  //!      d_temp_storage, temp_storage_bytes, d_in, d_out,
-  //!      num_segments, d_offsets, d_offsets + 1, min_op, initial_value);
-  //!
-  //!    // Allocate temporary storage
-  //!    cudaMalloc(&d_temp_storage, temp_storage_bytes);
-  //!
-  //!    // Run reduction
-  //!    cub::DeviceSegmentedReduce::Reduce(
-  //!      d_temp_storage, temp_storage_bytes, d_in, d_out,
-  //!      num_segments, d_offsets, d_offsets + 1, min_op, initial_value);
-  //!
-  //!    // d_out <-- [6, INT_MAX, 0]
+  //! .. literalinclude:: ../../test/catch2_test_device_segmented_reduce_api.cu
+  //!     :language: c++
+  //!     :dedent:
+  //!     :start-after: example-begin segmented-reduce-reduce
+  //!     :end-before: example-end segmented-reduce-reduce
   //!
   //! @endrst
   //!
@@ -288,7 +252,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -461,7 +425,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -623,7 +587,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
@@ -982,7 +946,7 @@ public:
     static_assert(integral_offset_check::value, "Offset iterator value type should be integral.");
 
     return segmented_reduce<InputIteratorT, OutputIteratorT, BeginOffsetIteratorT, EndOffsetIteratorT, OffsetT>(
-      integral_offset_check{}, // feels like integral_offset_check::type{}
+      integral_offset_check{},
       d_temp_storage,
       temp_storage_bytes,
       d_in,
