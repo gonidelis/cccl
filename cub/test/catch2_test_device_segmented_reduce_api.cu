@@ -33,7 +33,10 @@
 #include <cstddef>
 
 #include "catch2_test_helper.h"
+<<<<<<< HEAD
 #include "thrust/detail/raw_pointer_cast.h"
+=======
+>>>>>>> 3aae62ed4206f0e6963279fd6d6e9eb5629e8dc6
 
 struct CustomMin
 {
@@ -49,8 +52,13 @@ CUB_TEST("Device segmented reduce works with int data elements", "[segmented_red
   // example-begin segmented-reduce-reduce
   int num_segments                     = 3;
   thrust::device_vector<int> d_offsets = {0, 3, 3, 7};
+<<<<<<< HEAD
   thrust::device_vector<int> d_in{8, 6, 7, 5, 3, 0, 9};
   thrust::device_vector<int> d_out(3);
+=======
+  thrust::device_vector<int> d_in{1};
+  thrust::device_vector<int> d_out;
+>>>>>>> 3aae62ed4206f0e6963279fd6d6e9eb5629e8dc6
   CustomMin min_op;
   int initial_value{INT_MAX};
 
@@ -58,6 +66,7 @@ CUB_TEST("Device segmented reduce works with int data elements", "[segmented_red
   void* d_temp_storage      = nullptr;
   size_t temp_storage_bytes = 0;
   cub::DeviceSegmentedReduce::Reduce(
+<<<<<<< HEAD
     d_temp_storage,
     temp_storage_bytes,
     d_in.begin(),
@@ -87,4 +96,18 @@ CUB_TEST("Device segmented reduce works with int data elements", "[segmented_red
   // example-end segmented-reduce-reduce
 
   REQUIRE(d_out == expected);
+=======
+    d_temp_storage, temp_storage_bytes, d_in.data(), d_out.data(), num_segments, d_offsets.data(), d_offsets.data() + 1, min_op, initial_value);
+  
+  // Allocate temporary storage
+  cudaMalloc(&d_temp_storage, temp_storage_bytes);
+  
+  // Run reduction
+  cub::DeviceSegmentedReduce::Reduce(
+    d_temp_storage, temp_storage_bytes, d_in.data(), d_out.data(), num_segments, d_offsets.data(), d_offsets.data() + 1, min_op, initial_value);
+
+  // example-end segmented-reduce-reduce
+
+  REQUIRE(d_out == thrust::device_vector<int>{6, INT_MAX, 0});
+>>>>>>> 3aae62ed4206f0e6963279fd6d6e9eb5629e8dc6
 }
