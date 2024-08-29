@@ -296,6 +296,21 @@ ThreadScanInclusive(T* input, T* output, ScanOp scan_op, T prefix, bool apply_pr
   return ThreadScanInclusive(inclusive, input + 1, output + 1, scan_op, Int2Type<LENGTH - 1>());
 }
 
+template <int LENGTH, typename T, typename ScanOp>
+_CCCL_DEVICE _CCCL_FORCEINLINE T
+ThreadScanInclusive(T* input, T* output, T init_value, ScanOp scan_op, T prefix, bool apply_prefix = true)
+{
+  T inclusive = scan_op(input[0], init_value);
+  if (apply_prefix)
+  {
+    inclusive = scan_op(prefix, inclusive);
+  }
+  output[0] = inclusive;
+
+  // Continue scan
+  return ThreadScanInclusive(inclusive, input + 1, output + 1, scan_op, Int2Type<LENGTH - 1>());
+}
+
 /**
  * @brief Perform a sequential inclusive prefix scan over the
  *        statically-sized @p input array, seeded with the specified @p prefix.
@@ -334,6 +349,12 @@ ThreadScanInclusive(T (&input)[LENGTH], T (&output)[LENGTH], ScanOp scan_op, T p
   return ThreadScanInclusive<LENGTH>((T*) input, (T*) output, scan_op, prefix, apply_prefix);
 }
 
+template <int LENGTH, typename T, typename ScanOp>
+_CCCL_DEVICE _CCCL_FORCEINLINE T ThreadScanInclusive(
+  T (&input)[LENGTH], T (&output)[LENGTH], T init_value, ScanOp scan_op, T prefix, bool apply_prefix = true)
+{
+  return ThreadScanInclusive<LENGTH>((T*) input, (T*) output, init_value, scan_op, prefix, apply_prefix);
+}
 //@}  end member group
 
 } // namespace internal
