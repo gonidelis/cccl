@@ -457,6 +457,17 @@ struct BlockScanWarpScans
     InclusiveScan(input, inclusive_output, scan_op, block_aggregate);
   }
 
+  // note: Or we could instead of having two overloads default the initial_value at the end?
+  // void InclusiveScan(T input, T& inclusive_output, ScanOp scan_op, T initial_value = T{})
+  // but then we need to figure out the identity value for T which could certainly defer from
+  // the default value type T{} and it's not trivial to find.
+  template <typename ScanOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(T input, T& inclusive_output, T initial_value, ScanOp scan_op)
+  {
+    T block_aggregate;
+    InclusiveScan(input, inclusive_output, scan_op, initial_value, block_aggregate);
+  }
+
   /**
    * @brief Computes an inclusive thread block-wide prefix scan using the specified binary \p
    *        scan_op functor. Each thread contributes one input element. Also provides every
@@ -478,6 +489,22 @@ struct BlockScanWarpScans
   _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(T input, T& inclusive_output, ScanOp scan_op, T& block_aggregate)
   {
     WarpScanT(temp_storage.warp_scan[warp_id]).InclusiveScan(input, inclusive_output, scan_op);
+
+    // Compute the warp-wide prefix and block-wide aggregate for each warp.  Warp prefix for warp0 is invalid.
+    T warp_prefix = ComputeWarpPrefix(scan_op, inclusive_output, block_aggregate);
+
+    // Apply warp prefix to our lane's partial
+    if (warp_id != 0)
+    {
+      inclusive_output = scan_op(warp_prefix, inclusive_output);
+    }
+  }
+
+  template <typename ScanOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void
+  InclusiveScan(T input, T& inclusive_output, T initial_value, ScanOp scan_op, T& block_aggregate)
+  {
+    WarpScanT(temp_storage.warp_scan[warp_id]).InclusiveScan(input, inclusive_output, initial_value, scan_op);
 
     // Compute the warp-wide prefix and block-wide aggregate for each warp.  Warp prefix for warp0 is invalid.
     T warp_prefix = ComputeWarpPrefix(scan_op, inclusive_output, block_aggregate);
@@ -516,6 +543,31 @@ struct BlockScanWarpScans
   {
     T block_aggregate;
     InclusiveScan(input, exclusive_output, scan_op, block_aggregate);
+
+    // Use the first warp to determine the thread block prefix, returning the result in lane0
+    if (warp_id == 0)
+    {
+      T block_prefix = block_prefix_callback_op(block_aggregate);
+      if (lane_id == 0)
+      {
+        // Share the prefix with all threads
+        detail::uninitialized_copy_single(&temp_storage.block_prefix, block_prefix);
+      }
+    }
+
+    CTA_SYNC();
+
+    // Incorporate thread block prefix into outputs
+    T block_prefix   = temp_storage.block_prefix;
+    exclusive_output = scan_op(block_prefix, exclusive_output);
+  }
+
+  template <typename ScanOp, typename BlockPrefixCallbackOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(
+    T input, T& exclusive_output, T initial_value, ScanOp scan_op, BlockPrefixCallbackOp& block_prefix_callback_op)
+  {
+    T block_aggregate;
+    InclusiveScan(input, exclusive_output, initial_value, scan_op, block_aggregate);
 
     // Use the first warp to determine the thread block prefix, returning the result in lane0
     if (warp_id == 0)

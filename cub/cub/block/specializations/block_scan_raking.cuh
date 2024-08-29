@@ -649,6 +649,12 @@ struct BlockScanRaking
     }
   }
 
+  template <typename ScanOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(T input, T& output, T initial_value, ScanOp scan_op)
+  {
+    return;
+  }
+
   /**
    * @brief Computes an inclusive thread block-wide prefix scan using the specified binary \p
    *        scan_op functor. Each thread contributes one input element.  Also provides every

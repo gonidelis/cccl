@@ -1993,6 +1993,12 @@ public:
     InternalBlockScan(temp_storage).InclusiveScan(input, output, scan_op);
   }
 
+  template <typename ScanOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(T input, T& output, T initial_value, ScanOp scan_op)
+  {
+    InternalBlockScan(temp_storage).InclusiveScan(input, output, initial_value, scan_op);
+  }
+
   //! @rst
   //! Computes an inclusive block-wide prefix scan using the specified binary ``scan_op`` functor.
   //! Each thread contributes one input element. Also provides every thread with the block-wide
@@ -2053,6 +2059,13 @@ public:
   _CCCL_DEVICE _CCCL_FORCEINLINE void InclusiveScan(T input, T& output, ScanOp scan_op, T& block_aggregate)
   {
     InternalBlockScan(temp_storage).InclusiveScan(input, output, scan_op, block_aggregate);
+  }
+
+  template <typename ScanOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void
+  InclusiveScan(T input, T& output, T initial_value, ScanOp scan_op, T& block_aggregate)
+  {
+    InternalBlockScan(temp_storage).InclusiveScan(input, output, initial_value, scan_op, block_aggregate);
   }
 
   //! @rst
@@ -2162,6 +2175,13 @@ public:
   InclusiveScan(T input, T& output, ScanOp scan_op, BlockPrefixCallbackOp& block_prefix_callback_op)
   {
     InternalBlockScan(temp_storage).InclusiveScan(input, output, scan_op, block_prefix_callback_op);
+  }
+
+  template <typename ScanOp, typename BlockPrefixCallbackOp>
+  _CCCL_DEVICE _CCCL_FORCEINLINE void
+  InclusiveScan(T input, T& output, T initial_value, ScanOp scan_op, BlockPrefixCallbackOp& block_prefix_callback_op)
+  {
+    InternalBlockScan(temp_storage).InclusiveScan(input, output, initial_value, scan_op, block_prefix_callback_op);
   }
 
   //! @}  end member group
