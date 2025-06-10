@@ -89,6 +89,30 @@ constexpr sample_size classify_sample_size()
   return sizeof(SampleT) == 1 ? sample_size::_1 : sizeof(SampleT) == 2 ? sample_size::_2 : sample_size::unknown;
 }
 
+template <bool IsEven,
+          class SampleT,
+          int NumChannels,
+          int NumActiveChannels,
+          counter_size CounterSize,
+          primitive_sample PrimitiveSample = is_primitive_sample<SampleT>(),
+          sample_size SampleSize           = classify_sample_size<SampleT>()>
+struct sm75_tuning;
+// even
+template <class SampleT>
+struct sm75_tuning<true, SampleT, 1, 1, counter_size::_4, primitive_sample::yes, sample_size::_1>
+{
+  // ipt_5.tpb_256.rle_0.ws_0.mem_1.ld_0.laid_0.vec_0 ()  1.198543  1.182292  1.197917  1.208333
+  // (new) 126  ipt_12.tpb_896.rle_1.ws_0.mem_1.ld_1.laid_0.vec_2 ()  1.188271  1.156833  1.188271  1.219708
+  static constexpr int items                                     = 12;
+  static constexpr int threads                                   = 896;
+  static constexpr bool rle_compress                             = true;
+  static constexpr bool work_stealing                            = false;
+  static constexpr BlockHistogramMemoryPreference mem_preference = SMEM;
+  static constexpr CacheLoadModifier load_modifier               = LOAD_CA;
+  static constexpr BlockLoadAlgorithm load_algorithm             = BLOCK_LOAD_WARP_TRANSPOSE;
+  static constexpr int vec_size                                  = 1 << 2;
+};
+
 template <class SampleT,
           int NumChannels,
           int NumActiveChannels,
@@ -225,8 +249,31 @@ struct policy_hub
       AgentHistogramPolicy<384, t_scale(16), BLOCK_LOAD_DIRECT, LOAD_LDG, true, SMEM, false>;
   };
 
+  // SM75
+  struct Policy750 : ChainedPolicy<750, Policy750, Policy500>
+  {
+    template <typename Tuning>
+    static auto select_agent_policy(int)
+      -> AgentHistogramPolicy<Tuning::threads,
+                              Tuning::items,
+                              Tuning::load_algorithm,
+                              Tuning::load_modifier,
+                              Tuning::rle_compress,
+                              Tuning::mem_preference,
+                              Tuning::work_stealing,
+                              Tuning::vec_size>;
+
+    template <typename Tuning>
+    static auto select_agent_policy(long) -> typename Policy500::AgentHistogramPolicyT;
+
+    using AgentHistogramPolicyT =
+      decltype(select_agent_policy<
+               sm75_tuning<IsEven, SampleT, NumChannels, NumActiveChannels, histogram::classify_counter_size<CounterT>()>>(
+        0));
+  };
+
   // SM90
-  struct Policy900 : ChainedPolicy<900, Policy900, Policy500>
+  struct Policy900 : ChainedPolicy<900, Policy900, Policy750>
   {
     // Use values from tuning if a specialization exists, otherwise pick Policy500
     template <typename Tuning>
@@ -240,7 +287,7 @@ struct policy_hub
                               Tuning::work_stealing>;
 
     template <typename Tuning>
-    static auto select_agent_policy(long) -> typename Policy500::AgentHistogramPolicyT;
+    static auto select_agent_policy(long) -> typename Policy750::AgentHistogramPolicyT;
 
     using AgentHistogramPolicyT =
       decltype(select_agent_policy<
@@ -270,7 +317,7 @@ struct policy_hub
         0));
   };
 
-  using MaxPolicy = Policy1000;
+  using MaxPolicy = Policy750;
 };
 } // namespace histogram
 } // namespace detail
