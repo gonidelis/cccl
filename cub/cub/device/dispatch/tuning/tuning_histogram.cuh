@@ -103,14 +103,15 @@ struct sm75_tuning<true, SampleT, 1, 1, counter_size::_4, primitive_sample::yes,
 {
   // ipt_5.tpb_256.rle_0.ws_0.mem_1.ld_0.laid_0.vec_0 ()  1.198543  1.182292  1.197917  1.208333
   // (new) 126  ipt_12.tpb_896.rle_1.ws_0.mem_1.ld_1.laid_0.vec_2 ()  1.188271  1.156833  1.188271  1.219708
+  // (new new) 29   ipt_12.tpb_960.rle_0.ws_0.mem_1.ld_0.laid_0.vec_1 ()  1.189911  1.189911  1.189911  1.189911
   static constexpr int items                                     = 12;
-  static constexpr int threads                                   = 896;
-  static constexpr bool rle_compress                             = true;
+  static constexpr int threads                                   = 960;
+  static constexpr bool rle_compress                             = false;
   static constexpr bool work_stealing                            = false;
   static constexpr BlockHistogramMemoryPreference mem_preference = SMEM;
-  static constexpr CacheLoadModifier load_modifier               = LOAD_CA;
+  static constexpr CacheLoadModifier load_modifier               = LOAD_DEFAULT;
   static constexpr BlockLoadAlgorithm load_algorithm             = BLOCK_LOAD_WARP_TRANSPOSE;
-  static constexpr int vec_size                                  = 1 << 2;
+  static constexpr int vec_size                                  = 1 << 1;
 };
 
 template <class SampleT,
