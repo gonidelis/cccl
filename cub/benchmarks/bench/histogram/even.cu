@@ -25,6 +25,10 @@
  *
  ******************************************************************************/
 
+#include <cstdint>
+#include <random>
+
+#include <curand_kernel.h>
 #include <nvbench_helper.cuh>
 
 #include "histogram_common.cuh"
@@ -38,13 +42,48 @@
 // %RANGE% TUNE_LOAD_ALGORITHM_ID laid 0:2:1
 // %RANGE% TUNE_VEC_SIZE_POW vec 0:2:1
 
-template <typename SampleT, typename CounterT, typename OffsetT>
-static void even(nvbench::state& state, nvbench::type_list<SampleT, CounterT, OffsetT>)
+// Generate random input with contention
+struct evil_functor_philox
+{
+  unsigned int seed;
+  float contention;
+
+  evil_functor_philox(unsigned int seed, float contention)
+      : seed(seed)
+      , contention(contention)
+  {}
+
+  __device__ unsigned char operator()(unsigned int n) const
+  {
+    // Philox4x32_10, like PyTorch CUDA
+    curandStatePhilox4_32_10_t state;
+    curand_init(seed, n, 0, &state);
+
+    // Generate random uint in [0,255] for the main value
+    unsigned char val = static_cast<unsigned char>(curand(&state) % 256);
+
+    // Generate random float in [0,1) for contention decision
+    float p = curand_uniform(&state);
+
+    if (p < (contention / 100.0f))
+    {
+      // Generate evil_value using the same generator
+      unsigned char evil_value = static_cast<unsigned char>(curand(&state) % 256);
+      return evil_value;
+    }
+    return val;
+  }
+};
+
+template <typename OffsetT>
+static void even(nvbench::state& state, nvbench::type_list<OffsetT>)
 {
   constexpr int num_channels        = 1;
   constexpr int num_active_channels = 1;
+  using SampleT                     = int8_t;
+  using sample_iterator_t           = SampleT*;
 
-  using sample_iterator_t = SampleT*;
+  using CounterT = int32_t;
 
 #if !TUNE_BASE
   using policy_t = policy_hub_t<key_t, num_channels, num_active_channels>;
@@ -66,15 +105,27 @@ static void even(nvbench::state& state, nvbench::type_list<SampleT, CounterT, Of
                            OffsetT>;
 #endif // TUNE_BASE
 
-  const auto entropy   = str_to_entropy(state.get_string("Entropy"));
+  // const auto entropy   = str_to_entropy(state.get_string("Entropy"));
   const auto elements  = state.get_int64("Elements{io}");
-  const auto num_bins  = state.get_int64("Bins");
+  const auto num_bins  = 256;
   const int num_levels = static_cast<int>(num_bins) + 1;
 
   const SampleT lower_level = 0;
-  const SampleT upper_level = get_upper_level<SampleT>(num_bins, elements);
+  const SampleT upper_level = get_upper_level<SampleT, OffsetT>(num_bins, elements);
 
-  thrust::device_vector<SampleT> input = generate(elements, entropy, lower_level, upper_level);
+  ////////////////////////////
+  // thrust::device_vector<SampleT> input = generate(elements, entropy, lower_level, upper_level);
+  float contention  = 10.0f; // percent
+  unsigned int seed = 42;
+
+  // Generate input
+  thrust::device_vector<SampleT> input(elements);
+  thrust::transform(thrust::counting_iterator<unsigned int>(0),
+                    thrust::counting_iterator<unsigned int>(elements),
+                    input.begin(),
+                    evil_functor_philox(seed, contention));
+  ////////////////////////////
+
   thrust::device_vector<CounterT> hist(num_bins);
 
   SampleT* d_input      = thrust::raw_pointer_cast(input.data());
@@ -127,7 +178,7 @@ static void even(nvbench::state& state, nvbench::type_list<SampleT, CounterT, Of
 }
 
 using counter_types     = nvbench::type_list<int32_t>;
-using some_offset_types = nvbench::type_list<int32_t>;
+using some_offset_types = nvbench::type_list<int64_t>;
 
 #ifdef TUNE_SampleT
 using sample_types = nvbench::type_list<TUNE_SampleT>;
@@ -135,9 +186,7 @@ using sample_types = nvbench::type_list<TUNE_SampleT>;
 using sample_types = nvbench::type_list<int8_t, int16_t, int32_t, int64_t, float, double>;
 #endif // TUNE_SampleT
 
-NVBENCH_BENCH_TYPES(even, NVBENCH_TYPE_AXES(sample_types, counter_types, some_offset_types))
+NVBENCH_BENCH_TYPES(even, NVBENCH_TYPE_AXES(some_offset_types))
   .set_name("base")
-  .set_type_axes_names({"SampleT{ct}", "CounterT{ct}", "OffsetT{ct}"})
-  .add_int64_power_of_two_axis("Elements{io}", nvbench::range(16, 28, 4))
-  .add_int64_axis("Bins", {32, 128, 2048, 2097152})
-  .add_string_axis("Entropy", {"0.201", "1.000"});
+  .set_type_axes_names({"OffsetT{ct}"})
+  .add_int64_axis("Elements{io}", {10485760});
