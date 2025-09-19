@@ -16,6 +16,12 @@
 
 #include <nvbench/nvbench.cuh>
 
+#include <cuda_fp16.h>
+#include <cuda_bf16.h>
+
+NVBENCH_DECLARE_TYPE_STRINGS(__half, "HALF", "__half");
+NVBENCH_DECLARE_TYPE_STRINGS(__nv_bfloat16, "BF16", "__nv_bfloat16");
+
 #if defined(_MSC_VER)
 #  define NVBENCH_HELPER_HAS_I128 0
 #else
@@ -99,12 +105,12 @@ using all_types =
                      int16_t,
                      int32_t,
                      int64_t,
-#  if NVBENCH_HELPER_HAS_I128
                      int128_t,
-#  endif
                      float,
                      double,
-                     complex>;
+                     complex,
+                     __half,
+                     __nv_bfloat16>;
 #endif
 
 template <class T>

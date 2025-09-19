@@ -80,8 +80,9 @@ void reduce(nvbench::state& state, nvbench::type_list<T, OffsetT>)
      accum_t
 #if !TUNE_BASE
     ,
-    policy_hub_t<accum_t, offset_t>
-#endif // TUNE_BASE
+    ::cuda::std::identity,  // TransformOpT - use identity transform
+    policy_hub_t<accum_t, offset_t>  // PolicyHub - custom policy
+#endif // !TUNE_BASE
     >;
 
   // Retrieve axis parameters

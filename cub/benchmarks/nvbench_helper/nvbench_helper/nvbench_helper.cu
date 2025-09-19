@@ -208,6 +208,18 @@ struct and_t
     return {static_cast<float>(reinterpret_cast<const double&>(result_real)),
             static_cast<float>(reinterpret_cast<const double&>(result_imag))};
   }
+
+  __host__ __device__ __half operator()(__half a, __half b) const
+  {
+    const std::uint16_t result = reinterpret_cast<const std::uint16_t&>(a) & reinterpret_cast<const std::uint16_t&>(b);
+    return reinterpret_cast<const __half&>(result);
+  }
+
+  __host__ __device__ __nv_bfloat16 operator()(__nv_bfloat16 a, __nv_bfloat16 b) const
+  {
+    const std::uint16_t result = reinterpret_cast<const std::uint16_t&>(a) & reinterpret_cast<const std::uint16_t&>(b);
+    return reinterpret_cast<const __nv_bfloat16&>(result);
+  }
 };
 
 struct set_real_t
@@ -804,4 +816,6 @@ INSTANTIATE(uint128_t);
 INSTANTIATE(float);
 INSTANTIATE(double);
 INSTANTIATE(complex);
+INSTANTIATE(__half);
+INSTANTIATE(__nv_bfloat16);
 #undef INSTANTIATE
