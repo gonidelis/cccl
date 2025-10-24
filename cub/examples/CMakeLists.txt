@@ -40,6 +40,7 @@ function(cub_add_example target_name_var example_name example_src cub_target)
   )
   cub_clone_target_properties(${example_target} ${cub_target})
   cub_configure_cuda_target(${example_target} RDC ${CUB_FORCE_RDC})
+  target_compile_options(${example_target} PRIVATE $<$<COMPILE_LANGUAGE:CUDA>:--extended-lambda>)
   target_include_directories(${example_target} PRIVATE "${CUB_SOURCE_DIR}/examples")
 
   # Add to the active configuration's meta target

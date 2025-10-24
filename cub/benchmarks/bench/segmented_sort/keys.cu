@@ -138,6 +138,47 @@ struct device_seg_sort_policy_hub
 };
 #endif // !TUNE_BASE
 
+template <typename KeyT, typename ValueT>
+struct MyCustomPolicyHub
+{
+ using DominantT                = ::cuda::std::_If<(sizeof(ValueT) > sizeof(KeyT)), ValueT, KeyT>;
+ static constexpr int KEYS_ONLY = ::cuda::std::is_same_v<ValueT, cub::NullType>;
+
+
+ struct Policy900 : cub::ChainedPolicy<900, Policy900, Policy900> // this is copy paste from SM80 tuning policy
+ {
+   static constexpr int BLOCK_THREADS          = 256;
+   static constexpr int PARTITIONING_THRESHOLD = 500;
+   using LargeSegmentPolicy                    = cub::AgentRadixSortDownsweepPolicy<
+                        BLOCK_THREADS,
+                        23,
+                        DominantT,
+                        cub::BLOCK_LOAD_TRANSPOSE,
+                        cub::LOAD_DEFAULT,
+                        cub::RADIX_RANK_MEMOIZE,
+                        cub::BLOCK_SCAN_WARP_SCANS,
+     (sizeof(KeyT) > 1) ? 6 : 4>;
+
+   static constexpr int ITEMS_PER_SMALL_THREAD  = cub::Nominal4BItemsToItems<DominantT>(9);
+   static constexpr int ITEMS_PER_MEDIUM_THREAD = cub::Nominal4BItemsToItems<DominantT>(KEYS_ONLY ? 7 : 11);
+
+   using SmallSegmentPolicy =
+     cub::AgentSubWarpMergeSortPolicy<BLOCK_THREADS,
+                                 KEYS_ONLY ? 4 : 2 /* Threads per segment */,
+                                 ITEMS_PER_SMALL_THREAD,
+                                 cub::WARP_LOAD_TRANSPOSE,
+                                 cub::LOAD_DEFAULT>;
+   using MediumSegmentPolicy =
+     cub::AgentSubWarpMergeSortPolicy<BLOCK_THREADS,
+                                 32 /* Threads per segment */,
+                                 ITEMS_PER_MEDIUM_THREAD,
+                                 cub::WARP_LOAD_TRANSPOSE,
+                                 cub::LOAD_DEFAULT>;
+ };
+ using MaxPolicy = Policy900;
+};
+
+
 template <class T, typename OffsetT>
 void seg_sort(nvbench::state& state,
               nvbench::type_list<T, OffsetT> ts,
@@ -159,7 +200,10 @@ void seg_sort(nvbench::state& state,
     cub::DispatchSegmentedSort<sort_order, key_t, value_t, offset_t, begin_offset_it_t, end_offset_it_t, policy_t>;
 #else
   using dispatch_t = //
-    cub::DispatchSegmentedSort<sort_order, key_t, value_t, offset_t, begin_offset_it_t, end_offset_it_t>;
+    cub::DispatchSegmentedSort<sort_order, key_t, value_t, offset_t, begin_offset_it_t, end_offset_it_t, MyCustomPolicyHub<key_t, cub::NullType>>;
+
+  // using dispatch_t = //
+  //   cub::DispatchSegmentedSort<sort_order, key_t, value_t, offset_t, begin_offset_it_t, end_offset_it_t>;
 #endif
 
   const auto elements = static_cast<std::size_t>(state.get_int64("Elements{io}"));
