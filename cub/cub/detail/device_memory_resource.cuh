@@ -25,34 +25,38 @@ namespace detail
 // this implementation
 struct device_memory_resource
 {
-  void* allocate(size_t bytes, size_t /* alignment */)
+  CUB_RUNTIME_FUNCTION void* allocate(size_t bytes, size_t /* alignment */)
   {
     void* ptr{nullptr};
-    _CCCL_TRY_CUDA_API(::cudaMallocAsync, "allocate failed to allocate with cudaMalloc", &ptr, bytes, NULL);
-    _CCCL_ASSERT(ptr != nullptr, "allocate failed to allocate with cudaMallocAsync");
+    NV_IF_TARGET(
+      NV_IS_HOST,
+      (_CCCL_TRY_CUDA_API(::cudaMallocAsync, "allocate failed to allocate with cudaMalloc", &ptr, bytes, NULL);
+       _CCCL_ASSERT(ptr != nullptr, "allocate failed to allocate with cudaMallocAsync");))
     return ptr;
   }
 
-  void deallocate(void* ptr, size_t /* bytes */)
+  CUB_RUNTIME_FUNCTION void deallocate(void* ptr, size_t /* bytes */)
   {
-    _CCCL_TRY_CUDA_API(::cudaFree, "deallocate failed", ptr);
+    NV_IF_TARGET(NV_IS_HOST, (_CCCL_TRY_CUDA_API(::cudaFree, "deallocate failed", ptr);))
   }
 
-  void* allocate(::cuda::stream_ref stream, size_t bytes, size_t /* alignment */)
+  CUB_RUNTIME_FUNCTION void* allocate(::cuda::stream_ref stream, size_t bytes, size_t /* alignment */)
   {
     return allocate(stream, bytes);
   }
 
-  void* allocate(::cuda::stream_ref stream, size_t bytes)
+  CUB_RUNTIME_FUNCTION void* allocate(::cuda::stream_ref stream, size_t bytes)
   {
     void* ptr{nullptr};
-    _CCCL_TRY_CUDA_API(::cudaMallocAsync, "allocate failed to allocate with cudaMallocAsync", &ptr, bytes, stream.get());
+    NV_IF_TARGET(NV_IS_HOST,
+                 (_CCCL_TRY_CUDA_API(
+                    ::cudaMallocAsync, "allocate failed to allocate with cudaMallocAsync", &ptr, bytes, stream.get());))
     return ptr;
   }
 
-  void deallocate(::cuda::stream_ref stream, void* ptr, size_t /* bytes */)
+  CUB_RUNTIME_FUNCTION void deallocate(::cuda::stream_ref stream, void* ptr, size_t /* bytes */)
   {
-    _CCCL_TRY_CUDA_API(::cudaFreeAsync, "deallocate failed", ptr, stream.get());
+    NV_IF_TARGET(NV_IS_HOST, (_CCCL_TRY_CUDA_API(::cudaFreeAsync, "deallocate failed", ptr, stream.get());))
   }
 };
 } // namespace detail
