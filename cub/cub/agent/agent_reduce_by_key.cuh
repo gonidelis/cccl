@@ -217,11 +217,22 @@ struct AgentReduceByKey
   using ReduceBySegmentOpT = ReduceBySegmentOp<ReductionOpT>;
 
   // Parameterized BlockLoad type for keys
-  using BlockLoadKeysT =
-    BlockLoad<KeyOutputT, BLOCK_THREADS, ITEMS_PER_THREAD, AgentReduceByKeyPolicyT::LOAD_ALGORITHM>;
+  using BlockLoadKeysT = BlockLoad<KeyOutputT,
+                                   BLOCK_THREADS,
+                                   ITEMS_PER_THREAD,
+                                   AgentReduceByKeyPolicyT::LOAD_ALGORITHM,
+                                   1,
+                                   1,
+                                   AgentReduceByKeyPolicyT::LOAD_PREFETCH>;
 
   // Parameterized BlockLoad type for values
-  using BlockLoadValuesT = BlockLoad<AccumT, BLOCK_THREADS, ITEMS_PER_THREAD, AgentReduceByKeyPolicyT::LOAD_ALGORITHM>;
+  using BlockLoadValuesT = BlockLoad<AccumT,
+                                     BLOCK_THREADS,
+                                     ITEMS_PER_THREAD,
+                                     AgentReduceByKeyPolicyT::LOAD_ALGORITHM,
+                                     1,
+                                     1,
+                                     AgentReduceByKeyPolicyT::LOAD_PREFETCH>;
 
   // Parameterized BlockDiscontinuity type for keys
   using BlockDiscontinuityKeys = BlockDiscontinuity<KeyOutputT, BLOCK_THREADS>;
