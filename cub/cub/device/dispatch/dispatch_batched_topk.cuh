@@ -199,8 +199,9 @@ struct policy_selector_from_types
     // prefer-larger-index tie-break; applied to both tie-break directions on the expectation of near-symmetry).
     // Deliberately gated to exactly SM 100: B300 (SM 103) gets its own measurement campaign rather than inheriting
     // B200 policies. Other request shapes keep the default policy until their measurements land.
-    const bool has_sm100_tuning = deterministic && !::cuda::std::is_same_v<ValueT, NullType> && sizeof(KeyT) == 4
-                               && cc == ::cuda::compute_capability{10, 0};
+    // TRIAL ONLY (do not merge): admit keys-only and non-deterministic requests so the pairs-tuned
+    // buckets can be A/B benched on keys.cluster.
+    const bool has_sm100_tuning = sizeof(KeyT) == 4 && cc == ::cuda::compute_capability{10, 0};
     const auto cluster =
       has_sm100_tuning ? make_sm100_pairs_cluster_policy(StaticMaxSegSize, MaxK) : make_cluster_policy();
     return topk_policy{backend, baseline_policy, cluster};
