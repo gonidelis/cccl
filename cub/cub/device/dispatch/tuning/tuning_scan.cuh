@@ -960,6 +960,51 @@ struct policy_selector
     {
       return get_sm120_fallback_lookahead_policy();
     }
+    if (cc >= ::cuda::compute_capability{10, 7})
+    {
+      // tunings from cub/benchmarks/bench/scan/exclusive/sum.lookahead.cu
+      if (accum_is_primitive_or_trivially_copy_constructible)
+      {
+        switch (input_value_size)
+        {
+          case 1:
+            // wrps_4.lbi_6.ipt_184.lbs_1.bis_2 ()  wmean 1.034  mins 0.991
+            return ScanLookaheadPolicy{4, 184 - 1, 6, 1, 2};
+          case 2:
+            if (input_type == type_t::other)
+            {
+              // wrps_7.lbi_4.ipt_48.lbs_1.bis_2 ()  wmean 1.193  mins 1.006
+              return ScanLookaheadPolicy{7, 48 - 1, 4, 1, 2};
+            }
+            // wrps_4.lbi_8.ipt_160.lbs_1.bis_-1 ()  wmean 1.020  mins 0.956
+            return ScanLookaheadPolicy{4, 160 - 1, 8, 1, -1};
+          case 4:
+            if (input_type == type_t::float32)
+            {
+              // wrps_1.lbi_7.ipt_112.lbs_2.bis_-2 ()  wmean 1.169  mins 1.047
+              return ScanLookaheadPolicy{1, 112 - 1, 7, 2, -2};
+            }
+            // wrps_5.lbi_8.ipt_72.lbs_1.bis_-2 ()  wmean 1.052  mins 0.966
+            return ScanLookaheadPolicy{5, 72 - 1, 8, 1, -2};
+          case 8:
+            if (input_type == type_t::float64)
+            {
+              break;
+            }
+            // wrps_1.lbi_1.ipt_112.lbs_0.bis_-1 ()  wmean 1.038  mins 0.952
+            return ScanLookaheadPolicy{1, 112 - 1, 1, 0, -1};
+          case 16:
+            if (input_type == type_t::int128 || input_type == type_t::uint128)
+            {
+              // wrps_2.lbi_8.ipt_40.lbs_0.bis_-2 ()  wmean 1.129  mins 0.993
+              return ScanLookaheadPolicy{2, 40 - 1, 8, 0, -2};
+            }
+            break;
+          default:
+            break;
+        }
+      }
+    }
     if (cc >= ::cuda::compute_capability{10, 0})
     {
       // tunings from cub/benchmarks/bench/scan/exclusive/sum.lookahead.cu
